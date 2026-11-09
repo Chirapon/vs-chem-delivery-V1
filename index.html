@@ -82,7 +82,7 @@ tailwind.config = { theme: { extend: {
 
     <section class="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 border-b border-slate-200">
       <div><label class="lbl">วันที่ขนส่ง</label><input type="date" class="field" x-model="doc.date" @change="dateChanged()"></div>
-      <div><label class="lbl">ทะเบียนรถ</label>
+      <div><label class="lbl">ทะเบียนรถ (ใช้จัดกลุ่มใบงาน)</label>
         <select class="field" x-model="doc.vehicle">
           <option value="">เลือกทะเบียน</option>
           <template x-for="v in vehiclesList" :key="v.id"><option :value="v.plate" x-text="v.plate + (v.note ? ' (' + v.note + ')' : '')"></option></template>
@@ -271,29 +271,29 @@ tailwind.config = { theme: { extend: {
     </section>
   </main>
 
-  <!-- Drivers -->
+  <!-- Vehicles -->
   <section x-show="tab === 'drivers'" class="no-print space-y-4">
     <div x-show="justSaved" class="rounded-md border border-green-300 bg-green-50 p-4">
       <p class="font-semibold text-green-800" x-text="'บันทึกใบงานเลขที่ ' + (justSaved ? (justSaved.docNo || '-') : '') + ' เรียบร้อยแล้ว'"></p>
-      <p class="text-sm text-green-900">พนักงานขับรถแตะที่ชื่อของตัวเองเพื่อดูงาน
-        <span x-show="justSaved && justSaved.driver" x-text="'(ใบงานนี้ของ ' + (justSaved ? justSaved.driver : '') + (justSaved && justSaved.vehicle ? ' ทะเบียน ' + justSaved.vehicle : '') + ')'"></span></p>
+      <p class="text-sm text-green-900">แตะที่ทะเบียนรถของคุณเพื่อดูงานของรถคันนั้น
+        <span x-show="justSaved" x-text="'(ใบงานนี้ของรถทะเบียน ' + (justSaved ? justSaved.vehicle : '') + (justSaved && justSaved.driver ? ' ขับโดย ' + justSaved.driver : '') + ')'"></span></p>
+      <p x-show="justSaved && !justSaved.driver" class="text-sm text-amber-800 mt-1">ยังไม่ได้เลือกพนักงานขับรถ ค่าเที่ยวจะคำนวณเป็น 0 จนกว่าจะเลือก</p>
       <p x-show="savedErr" class="text-sm text-red-700 mt-1">เบราว์เซอร์นี้ไม่อนุญาตให้เก็บข้อมูลถาวร ข้อมูลจะหายเมื่อปิดหรือรีเฟรชหน้านี้</p>
       <p x-show="syncErr" class="text-sm text-red-700 mt-1" x-text="'ซิงค์กับ Google Sheet ไม่สำเร็จ: ' + syncErr + ' (ข้อมูลยังเก็บในเครื่อง และจะลองส่งใหม่อัตโนมัติ)'"></p>
     </div>
 
-    <div x-show="selDriver === null && jobId === null">
-      <h2 class="text-xl font-bold text-navy-800 mb-3">พนักงานขับรถ</h2>
-      <p x-show="!driverCards.length" class="bg-white border border-dashed border-slate-300 rounded-md p-6 text-center text-sm text-slate-500">ยังไม่มีพนักงานขับรถ เพิ่มได้ที่แท็บ Admin</p>
+    <div x-show="selVehicle === null && jobId === null">
+      <h2 class="text-xl font-bold text-navy-800 mb-3">รถ / ทะเบียน</h2>
+      <p x-show="!vehicleCards.length" class="bg-white border border-dashed border-slate-300 rounded-md p-6 text-center text-sm text-slate-500">ยังไม่มีทะเบียนรถ เพิ่มได้ที่แท็บ Admin</p>
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <template x-for="c in driverCards" :key="c.name">
+        <template x-for="c in vehicleCards" :key="c.key">
           <button type="button" class="text-left bg-white rounded-md border-2 p-4 hover:border-navy-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-navy-600"
-            :class="c.highlight ? 'border-green-600' : 'border-slate-200'" @click="selDriver = c.name; justSaved = null">
+            :class="c.highlight ? 'border-green-600' : 'border-slate-200'" @click="selVehicle = c.key; justSaved = null">
             <div class="flex items-start justify-between gap-2">
-              <span class="font-semibold text-navy-800 text-lg" x-text="c.name || 'ยังไม่ระบุพนักงานขับรถ'"></span>
+              <span class="font-bold text-navy-800 text-2xl" x-text="c.plate || 'ยังไม่ระบุทะเบียน'"></span>
               <span x-show="c.highlight" class="text-xs bg-green-600 text-white rounded px-2 py-0.5 whitespace-nowrap">ใบงานใหม่</span>
-              <span x-show="c.resigned" class="text-xs bg-slate-500 text-white rounded px-2 py-0.5 whitespace-nowrap">ลาออกแล้ว</span>
             </div>
-            <div class="text-sm text-slate-600" x-text="c.vehicle ? 'ทะเบียน ' + c.vehicle : 'ยังไม่มีทะเบียน'"></div>
+            <div class="text-sm text-slate-600" x-text="(c.note ? c.note + ', ' : '') + (c.driver ? 'ล่าสุดขับโดย ' + c.driver : 'ยังไม่มีพนักงานขับรถ')"></div>
             <div class="mt-3 grid grid-cols-3 gap-2 text-center">
               <div><div class="text-xl font-bold text-navy-800" x-text="c.today"></div><div class="text-xs text-slate-500">ใบงานวันนี้</div></div>
               <div><div class="text-xl font-bold text-navy-800" x-text="c.jobs"></div><div class="text-xs text-slate-500">ใบงานทั้งหมด</div></div>
@@ -304,16 +304,16 @@ tailwind.config = { theme: { extend: {
       </div>
     </div>
 
-    <div x-show="selDriver !== null && jobId === null" class="space-y-3">
-      <button class="btn bg-white border border-slate-300 text-slate-700 hover:bg-slate-50" @click="selDriver = null">กลับไปเลือกพนักงานขับรถ</button>
-      <h2 class="text-xl font-bold text-navy-800" x-text="'งานของ ' + (selDriver || 'ยังไม่ระบุพนักงานขับรถ')"></h2>
-      <p x-show="!driverJobs.length" class="bg-white border border-dashed border-slate-300 rounded-md p-6 text-center text-sm text-slate-500">ยังไม่มีงานของพนักงานคนนี้</p>
-      <template x-for="j in driverJobs" :key="j.d.id">
+    <div x-show="selVehicle !== null && jobId === null" class="space-y-3">
+      <button class="btn bg-white border border-slate-300 text-slate-700 hover:bg-slate-50" @click="selVehicle = null">กลับไปเลือกทะเบียนรถ</button>
+      <h2 class="text-xl font-bold text-navy-800" x-text="'งานของรถทะเบียน ' + (selVehicleCard && selVehicleCard.plate ? selVehicleCard.plate : 'ยังไม่ระบุ')"></h2>
+      <p x-show="!vehicleJobs.length" class="bg-white border border-dashed border-slate-300 rounded-md p-6 text-center text-sm text-slate-500">ยังไม่มีงานของรถคันนี้</p>
+      <template x-for="j in vehicleJobs" :key="j.d.id">
         <div class="bg-white rounded-md border border-slate-200 overflow-hidden">
           <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-white px-4 py-2" :class="stat(j.d).head">
             <span class="font-semibold" x-text="'ใบงาน ' + (j.d.docNo || '-')"></span>
             <span class="text-sm" x-text="j.d.date"></span>
-            <span class="text-sm" x-show="j.d.vehicle" x-text="'ทะเบียน ' + j.d.vehicle"></span>
+            <span class="text-sm" x-show="j.d.driver" x-text="'ขับโดย ' + j.d.driver"></span>
             <span x-show="j.isToday" class="text-xs bg-white text-navy-800 rounded px-2 py-0.5">วันนี้</span>
             <span class="text-xs font-semibold rounded px-2 py-0.5 bg-white/25" x-text="statText(j.d)"></span>
             <span class="ml-auto text-sm" x-text="j.st.stops + ' จุดส่ง, ' + fmt(j.st.kg) + ' KG'"></span>
@@ -334,7 +334,7 @@ tailwind.config = { theme: { extend: {
           </div>
           <div class="p-3 bg-slate-50 border-t border-slate-200">
             <div class="flex flex-wrap items-center gap-3">
-              <button class="btn bg-navy-700 text-white hover:bg-navy-800" @click="startJob(j.d)">เปิดงานของฉัน</button>
+              <button class="btn bg-navy-700 text-white hover:bg-navy-800" @click="startJob(j.d)">เปิดงานของรถคันนี้</button>
               <button class="text-sm text-slate-600 underline" @click="openJob(j.d)">แก้ไขใบงานแบบเต็ม (แอดมิน)</button>
             </div>
           </div>
@@ -349,11 +349,11 @@ tailwind.config = { theme: { extend: {
 
           <div class="text-white rounded-md p-4" :class="stat(jobView.d).head">
             <div class="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 class="text-xl font-bold" x-text="'ใบงาน ' + (jobView.d.docNo || '-')"></h2>
+              <h2 class="text-xl font-bold" x-text="'ทะเบียน ' + (jobView.d.vehicle || '-') + ' / ใบงาน ' + (jobView.d.docNo || '-')"></h2>
               <span class="text-sm text-white/90" x-text="jobView.d.date"></span>
             </div>
             <p class="inline-block text-xs font-semibold rounded px-2 py-0.5 bg-white/25 mt-1" x-text="statText(jobView.d)"></p>
-            <p class="text-sm text-white/90 mt-1" x-text="'ทะเบียน ' + (jobView.d.vehicle || '-') + ', ' + (jobView.d.driver || '-') + (jobView.d.crew ? ', ผู้ช่วย ' + jobView.d.crew : '')"></p>
+            <p class="text-sm text-white/90 mt-1" x-text="'ขับโดย ' + (jobView.d.driver || '-') + (jobView.d.crew ? ', ผู้ช่วย ' + jobView.d.crew : '')"></p>
             <p class="mt-2 text-sm" x-text="'เสร็จแล้ว ' + jobView.done + ' / ' + jobView.stops.length + ' จุดส่ง, รวม ' + fmt(jobView.st.kg) + ' KG'"></p>
           </div>
 
@@ -476,6 +476,35 @@ tailwind.config = { theme: { extend: {
       </template>
     </div>
     <div class="bg-white rounded-md border border-slate-200 p-4">
+      <h3 class="font-semibold text-navy-800 mb-1">ส่งออก CSV</h3>
+      <p class="text-xs text-slate-600 mb-3">เลือกช่วงเวลาและตัวกรอง แล้วเลือกรูปแบบไฟล์ ไฟล์เปิดใน Excel ได้และภาษาไทยไม่เพี้ยน</p>
+      <div class="flex flex-wrap gap-2 mb-3">
+        <button class="btn bg-slate-100 text-slate-700 hover:bg-slate-200" @click="setDxRange('today')">วันนี้</button>
+        <button class="btn bg-slate-100 text-slate-700 hover:bg-slate-200" @click="setDxRange('7')">7 วันล่าสุด</button>
+        <button class="btn bg-slate-100 text-slate-700 hover:bg-slate-200" @click="setDxRange('month')">เดือนนี้</button>
+        <button class="btn bg-slate-100 text-slate-700 hover:bg-slate-200" @click="setDxRange('30')">30 วันล่าสุด</button>
+        <button class="btn bg-slate-100 text-slate-700 hover:bg-slate-200" @click="setDxRange('all')">ทั้งหมด</button>
+      </div>
+      <div class="grid sm:grid-cols-4 gap-3">
+        <div><label class="lbl">ตั้งแต่วันที่</label><input type="date" class="field" x-model="dx.from"></div>
+        <div><label class="lbl">ถึงวันที่</label><input type="date" class="field" x-model="dx.to"></div>
+        <div><label class="lbl">ทะเบียนรถ</label>
+          <select class="field" x-model="dx.vehicle"><option value="">ทุกคัน</option>
+            <template x-for="c in vehicleCards.filter(c => c.key)" :key="c.key"><option :value="c.key" x-text="c.plate"></option></template></select></div>
+        <div><label class="lbl">สถานะ</label>
+          <select class="field" x-model="dx.status"><option value="">ทุกสถานะ</option><option value="open">กำลังดำเนินการ</option><option value="done">จบงาน รอตรวจสอบ</option><option value="verified">ตรวจสอบแล้ว</option></select></div>
+      </div>
+      <p class="text-sm font-semibold text-navy-800 mt-3" x-text="dxDocs().length + ' ใบงาน, ' + dxItemCount() + ' รายการสินค้า ตามเงื่อนไขที่เลือก'"></p>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <button class="btn bg-navy-700 text-white hover:bg-navy-800" @click="exportDash('items')">ตามรายการสินค้า (1 แถวต่อรายการ)</button>
+        <button class="btn bg-white border border-navy-700 text-navy-700 hover:bg-navy-50" @click="exportDash('docs')">สรุปรายใบงาน (1 แถวต่อใบงาน)</button>
+        <button class="btn bg-white border border-navy-700 text-navy-700 hover:bg-navy-50" @click="exportDash('all')">ทั้งหมด (ไม่จำกัดช่วงเวลา)</button>
+      </div>
+      <p class="text-sm mt-2 font-semibold" :class="dxErr ? 'text-red-600' : 'text-green-700'" x-show="dxMsg" x-text="dxMsg"></p>
+      <p class="text-xs text-slate-500 mt-2">"ทั้งหมด" ส่งออกทุกใบงานและทุกรายการ ไม่ใช้ตัวกรองด้านบน ตัวเลขระดับใบงาน (เที่ยว ไมล์ ค่าตอบแทน) ใส่ไว้เฉพาะแถวแรกของแต่ละใบงาน เพื่อไม่ให้รวมซ้ำเมื่อใช้ SUM ใน Excel</p>
+    </div>
+
+    <div class="bg-white rounded-md border border-slate-200 p-4">
       <h3 class="font-semibold text-navy-800 mb-3">ประวัติใบงาน</h3>
       <div class="overflow-x-auto">
         <table class="tbl w-full text-sm border-collapse min-w-[760px]">
@@ -553,7 +582,7 @@ tailwind.config = { theme: { extend: {
             <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span class="font-semibold" x-text="'ใบงาน ' + (r.d.docNo || '-')"></span>
               <span class="text-xs font-semibold rounded px-2 py-0.5" :class="stat(r.d).badge" x-text="statText(r.d)"></span>
-              <span class="text-sm text-slate-700" x-text="r.d.date + ', ' + (r.d.driver || '-') + ', ' + (r.d.vehicle || '-')"></span>
+              <span class="text-sm text-slate-700" x-text="'ทะเบียน ' + (r.d.vehicle || '-') + ', ' + r.d.date + ', ' + (r.d.driver || '-')"></span>
               <span class="ml-auto text-sm" x-text="r.st.stops + ' จุดส่ง, ' + fmt(r.st.kg) + ' KG, ' + fmt(r.st.dist) + ' กม.'"></span>
             </div>
             <p class="text-xs text-slate-600 mt-1" x-text="r.d.status === 'done' ? 'จบงานเมื่อ ' + when(r.d.doneAt) : 'ตรวจสอบเมื่อ ' + when(r.d.verifiedAt)"></p>
@@ -743,12 +772,13 @@ function dispatchApp() {
     savedMsg: '',
     pasteText: '', importMsg: '', importOk: true,
     dlg: { open: false, msg: '', fn: null },
-    tab: 'dispatch', jobId: null, selDriver: null, justSaved: null, savedErr: false,
-    tabs: [{ id: 'dispatch', label: 'ใบงาน' }, { id: 'drivers', label: 'พนักงานขับรถ' }, { id: 'dashboard', label: 'Dashboard' }, { id: 'admin', label: 'Admin' }],
+    tab: 'dispatch', jobId: null, selVehicle: null, justSaved: null, savedErr: false,
+    tabs: [{ id: 'dispatch', label: 'ใบงาน' }, { id: 'drivers', label: 'รถ / ทะเบียน' }, { id: 'dashboard', label: 'Dashboard' }, { id: 'admin', label: 'Admin' }],
     master: seedMaster(), history: [], range: '30',
     newEmp: { empId: '', name: '', role: 'driver', tripFeeRate: null, overnightFeeRate: null, startDate: today() },
     empSearch: '', empFilter: 'all', docSeqInput: null,
     exp: { from: today().slice(0, 8) + '01', to: today(), unverified: false },
+    dx: { from: today().slice(0, 8) + '01', to: today(), vehicle: '', status: '' }, dxMsg: '', dxErr: false,
     sc: { url: DEFAULT_SYNC_URL, token: '', enabled: true, since: 0, sigs: {}, cfgReady: false, forceCfg: false, pendingDeletes: [], lastOk: '' },
     syncBusy: false, syncAgain: false, syncErr: '', syncTimer: null,
     diag: [], diagBusy: false, syncLog: [], newVeh: { plate: '', note: '' }, adminMsg: '', adminOk: true,
@@ -948,7 +978,6 @@ function dispatchApp() {
         ],
         lists: [
           mk('น้ำหนักที่ส่งรายวัน (KG)', toRows(day).sort((x, y) => x.label.localeCompare(y.label)).slice(-14)),
-          mk('ตามพนักงานขับรถ (KG)', byKg(toRows(drv))),
           mk('ตามทะเบียนรถ (KG)', byKg(toRows(veh))),
           mk('ลูกค้าที่รับน้ำหนักมากสุด (KG)', byKg(Object.entries(cus).map(([label, value]) => ({ label, value, sub: '' }))).slice(0, 8)),
           mk('ค่าเที่ยวและค้างคืนตามพนักงาน (บาท)', byKg(Object.values(pay).map(r => ({ label: r.label, value: r.amt, sub: r.trips + ' เที่ยว' }))))
@@ -957,21 +986,21 @@ function dispatchApp() {
     },
     async saveDoc() {
       if (!this.hasData(this.doc)) { this.savedErr = true; this.savedMsg = 'ยังไม่มีรายการสินค้าให้บันทึก'; return; }
-      if (!this.doc.driver) { this.savedErr = true; this.savedMsg = 'กรุณาเลือกพนักงานขับรถก่อนบันทึก'; return; }
+      if (!(this.doc.vehicle || '').trim()) { this.savedErr = true; this.savedMsg = 'กรุณาเลือกทะเบียนรถก่อนบันทึก'; return; }
       if (!this.doc.signDriver) this.doc.signDriver = this.doc.driver;
       if (this.sc.enabled && this.sc.url) { this.savedErr = false; this.savedMsg = 'กำลังบันทึกและซิงค์กับ Google Sheet...'; await this.syncNow(); }
       this.commitDocNo();
       this.save(true);
       this.archiveCurrent();
       this.justSaved = { id: this.doc.id, docNo: this.doc.docNo, driver: this.doc.driver, vehicle: this.doc.vehicle };
-      this.selDriver = null; this.jobId = null;
+      this.selVehicle = null; this.jobId = null;
       this.tab = 'drivers';
       this.syncNow();
     },
     openJob(d) { this.jobId = null; if (d.id === this.doc.id) this.tab = 'dispatch'; else this.openDoc(d); },
     startJob(d) {
       if (!d.signDriver) d.signDriver = d.driver || '';
-      this.selDriver = d.driver || ''; this.jobId = d.id;
+      this.selVehicle = this.normPlate(d.vehicle); this.jobId = d.id;
     },
     mileErr(d) { const a = Number(d.startMile), b = Number(d.endMile); return !!(a && b && b < a); },
     get jobView() {
@@ -990,20 +1019,24 @@ function dispatchApp() {
       });
       return [...m.values()];
     },
-    get driverCards() {
-      const docs = this.allDocs, t = today();
-      const names = new Set(this.drivers.map(e => e.name));
-      docs.forEach(d => names.add(d.driver || ''));
-      return [...names].map(name => {
-        const mine = docs.filter(d => (d.driver || '') === name).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-        return { name, vehicle: (mine[0] && mine[0].vehicle) || '', jobs: mine.length, today: mine.filter(d => d.date === t).length,
-                 kg: mine.reduce((sum, d) => sum + this.docStats(d).kg, 0), highlight: !!this.justSaved && this.justSaved.driver === name, resigned: this.isResigned(name) };
-      }).filter(c => c.name || c.jobs).sort((a, b) => (b.highlight - a.highlight) || a.name.localeCompare(b.name));
+    normPlate(p) { return String(p || '').replace(/[\s\-.]/g, '').toLowerCase(); },
+    get vehicleCards() {
+      const docs = this.allDocs, t = today(), map = new Map();
+      this.vehiclesList.forEach(v => map.set(this.normPlate(v.plate), { plate: v.plate.trim(), note: v.note || '' }));
+      docs.forEach(d => { const k = this.normPlate(d.vehicle); if (!map.has(k)) map.set(k, { plate: (d.vehicle || '').trim(), note: '' }); });
+      return [...map].map(([key, v]) => {
+        const mine = docs.filter(d => this.normPlate(d.vehicle) === key).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        return { key, plate: v.plate, note: v.note, driver: (mine[0] && mine[0].driver) || '', jobs: mine.length,
+                 today: mine.filter(d => d.date === t).length, open: mine.filter(d => (d.status || 'open') === 'open').length,
+                 kg: mine.reduce((sum, d) => sum + this.docStats(d).kg, 0),
+                 highlight: !!this.justSaved && this.normPlate(this.justSaved.vehicle) === key };
+      }).filter(c => c.plate || c.jobs).sort((a, b) => (b.highlight - a.highlight) || a.plate.localeCompare(b.plate));
     },
-    get driverJobs() {
-      if (this.selDriver === null) return [];
+    get selVehicleCard() { return this.selVehicle === null ? null : (this.vehicleCards.find(c => c.key === this.selVehicle) || { plate: '', note: '' }); },
+    get vehicleJobs() {
+      if (this.selVehicle === null) return [];
       const t = today();
-      return this.allDocs.filter(d => (d.driver || '') === this.selDriver)
+      return this.allDocs.filter(d => this.normPlate(d.vehicle) === this.selVehicle)
         .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
         .map(d => ({ d, st: this.docStats(d), stops: this.stopList(d), current: d.id === this.doc.id, isToday: d.date === t }));
     },
@@ -1013,6 +1046,7 @@ function dispatchApp() {
     finishJob(d) {
       const stops = this.stopList(d), miss = [];
       if (stops.some(x => !x.timeOut)) miss.push('เวลาออกบางจุดส่ง');
+      if (!(d.driver || '').trim()) miss.push('พนักงานขับรถ (ใช้คำนวณค่าเที่ยว)');
       if (!Number(d.endMile)) miss.push('เลขไมล์กลับถึงโกดัง');
       if (!Number(d.tripCount)) miss.push('จำนวนเที่ยว');
       if (!Object.values(d.check).every(Boolean)) miss.push('เช็คลิสต์');
@@ -1367,6 +1401,64 @@ function dispatchApp() {
         const ok = await this.syncNow();
         this.msg(ok, ok ? 'อัปโหลดข้อมูลหลักขึ้น Google Sheet แล้ว' : 'อัปโหลดไม่สำเร็จ: ' + this.syncErr);
       });
+    },
+    // ---- Dashboard CSV export ----
+    dayOffset(n) { const d = new Date(); d.setDate(d.getDate() - n); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); },
+    setDxRange(k) {
+      const t = today();
+      if (k === 'today') { this.dx.from = t; this.dx.to = t; }
+      else if (k === '7') { this.dx.from = this.dayOffset(6); this.dx.to = t; }
+      else if (k === '30') { this.dx.from = this.dayOffset(29); this.dx.to = t; }
+      else if (k === 'month') { this.dx.from = t.slice(0, 8) + '01'; this.dx.to = t; }
+      else { this.dx.from = ''; this.dx.to = ''; }
+    },
+    dxDocs(ignore) {
+      const { from, to, vehicle, status } = this.dx;
+      return this.allDocs.filter(d => ignore || ((!from || (d.date || '') >= from) && (!to || (d.date || '') <= to)
+          && (!vehicle || this.normPlate(d.vehicle) === vehicle) && (!status || (d.status || 'open') === status)))
+        .sort((a, b) => (a.date || '').localeCompare(b.date || '') || String(a.docNo).localeCompare(String(b.docNo)));
+    },
+    dxItemCount() { return this.dxDocs().reduce((n, d) => n + d.items.length, 0); },
+    dashRows(kind) {
+      const docs = this.dxDocs(kind === 'all'), nv = v => (v === null || v === undefined) ? '' : v;
+      if (kind === 'docs') {
+        const head = ['วันที่', 'เลขที่ใบงาน', 'ทะเบียนรถ', 'พนักงานขับรถ', 'ผู้ช่วย', 'สถานะใบงาน', 'จำนวน Drop', 'จำนวนเที่ยว', 'จำนวนคืนค้างคืน', 'จำนวนรายการสินค้า',
+          'น้ำหนักรวม (KG)', 'เลขไมล์ออกจากโกดัง', 'เลขไมล์กลับถึงโกดัง', 'ระยะทางรวม (กม.)', 'ค่าเที่ยว (บาท)', 'ค่าค้างคืน (บาท)', 'ค่าตอบแทนรวม (บาท)',
+          'ผู้ตรวจสอบ', 'ชื่อผู้ตรวจสอบท้ายใบงาน', 'เวลาจบงาน', 'เวลาตรวจสอบ'];
+        return [head].concat(docs.map(d => { const st = this.docStats(d), f = this.fees(d);
+          return [d.date, d.docNo, d.vehicle, d.driver, d.crew, this.stat(d).label, st.stops, nv(d.tripCount), nv(d.overnightCount), st.items, st.kg,
+            nv(d.startMile), nv(d.endMile), st.dist, f.trip, f.night, f.total, d.verifiedBy || '', d.signChecker || '',
+            d.doneAt ? this.when(d.doneAt) : '', d.verifiedAt ? this.when(d.verifiedAt) : '']; }));
+      }
+      const all = kind === 'all';
+      const head = ['วันที่', 'เลขที่ใบงาน', 'ทะเบียนรถ', 'พนักงานขับรถ', 'ผู้ช่วย', 'สถานะใบงาน', 'INV#', 'ชื่อลูกค้า', 'สินค้า', 'จำนวน', 'หน่วย', 'น้ำหนัก (KG)',
+        'Batch No.', 'สถานที่ส่ง', 'เวลาเข้า', 'เวลาออก', 'เลขไมล์ (ถึงหน้างาน)', 'หมายเหตุ']
+        .concat(all ? ['จำนวนเที่ยว', 'จำนวนคืนค้างคืน', 'เลขไมล์ออกจากโกดัง', 'เลขไมล์กลับถึงโกดัง', 'ผู้ตรวจสอบ', 'ค่าตอบแทนรวมของใบงาน (บาท)'] : []);
+      const rows = [];
+      docs.forEach(d => {
+        const base = [d.date, d.docNo, d.vehicle, d.driver, d.crew, this.stat(d).label];
+        const extra = (first) => !all ? [] : (first ? [nv(d.tripCount), nv(d.overnightCount), nv(d.startMile), nv(d.endMile), d.verifiedBy || '', this.fees(d).total] : ['', '', '', '', '', '']);
+        if (!d.items.length) rows.push(base.concat(['', '', '', '', '', '', '', '', '', '', '', ''], extra(true)));
+        d.items.forEach((it, k) => rows.push(base.concat([it.inv, it.customer, it.product, nv(it.qty), it.unit, this.itemKg(it), it.batch, it.dest,
+          it.timeIn, it.timeOut, nv(it.mileage), it.remark], extra(k === 0))));
+      });
+      return [head].concat(rows);
+    },
+    downloadCsv(name, rows) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([this.csvText(rows)], { type: 'text/csv;charset=utf-8' }));
+      a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    },
+    exportDash(kind) {
+      const docs = this.dxDocs(kind === 'all');
+      if (!docs.length) { this.dxErr = true; this.dxMsg = 'ไม่มีใบงานตามเงื่อนไขที่เลือก'; return; }
+      const rows = this.dashRows(kind);
+      const tag = kind === 'all' ? today() : (this.dx.from || 'start') + '_' + (this.dx.to || 'end');
+      this.downloadCsv('dispatch-' + kind + '_' + tag + '.csv', rows);
+      this.dxErr = false;
+      this.dxMsg = 'ส่งออกแล้ว ' + docs.length + ' ใบงาน, ' + (rows.length - 1) + ' แถว';
     },
     nextOrder() { return this.doc.items.reduce((m, i) => Math.max(m, i.order || 0), 0) + 1; },
     get groups() {
