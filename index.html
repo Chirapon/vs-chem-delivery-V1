@@ -44,9 +44,22 @@ tailwind.config = { theme: { extend: {
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans">
 <div x-data="dispatchApp()" x-init="init()" x-cloak class="max-w-7xl mx-auto p-3 sm:p-6">
+  <!-- Login -->
+  <div x-show="!authUser" class="fixed inset-0 z-50 bg-slate-100 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-xl shadow-xl border border-slate-200 p-6">
+      <div class="text-center mb-6"><div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-navy-800 text-white text-2xl font-bold mb-3">VS</div><h1 class="text-2xl font-bold text-navy-800">VS Chem</h1><p class="text-sm text-slate-500">ระบบบันทึกการส่งสินค้ารายวัน</p></div>
+      <form @submit.prevent="login()" class="space-y-4">
+        <div><label class="lbl">ชื่อผู้ใช้</label><input class="field" x-model.trim="loginForm.username" autocomplete="username" required placeholder="Username"></div>
+        <div><label class="lbl">รหัสผ่าน</label><input type="password" class="field" x-model="loginForm.password" autocomplete="current-password" required placeholder="Password"></div>
+        <p x-show="authMsg" class="text-sm text-red-600" x-text="authMsg"></p>
+        <button type="submit" class="btn w-full bg-navy-700 text-white hover:bg-navy-800" :disabled="authBusy" x-text="authBusy ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'"></button>
+      </form><p class="text-xs text-slate-400 text-center mt-4">กรุณาเข้าสู่ระบบด้วยบัญชีที่ผู้ดูแลกำหนด</p>
+    </div>
+  </div>
+  <div class="no-print flex justify-end items-center gap-3 mb-2 text-sm"><span class="text-slate-600" x-text="authUser ? authUser.username + ' · ' + (authUser.role === 'admin' ? 'Admin' : 'User') : ''"></span><button x-show="authUser" class="text-red-600 underline" @click="logout()">ออกจากระบบ</button></div>
 
   <nav class="no-print flex gap-1 mb-3 border-b border-slate-300" role="tablist">
-    <template x-for="t in tabs" :key="t.id">
+    <template x-for="t in tabs.filter(t => t.id !== 'admin' || authUser?.role === 'admin')" :key="t.id">
       <button role="tab" :aria-selected="tab === t.id" class="px-4 py-2 text-sm font-semibold rounded-t-md border border-b-0"
         :class="tab === t.id ? 'bg-white border-slate-300 text-navy-800' : 'border-transparent text-slate-600 hover:bg-white/60'"
         @click="tab = t.id" x-text="t.label"></button>
@@ -530,7 +543,20 @@ tailwind.config = { theme: { extend: {
   </section>
 
   <!-- Admin -->
-  <section x-show="tab === 'admin'" class="no-print space-y-4">
+  <section x-show="tab === 'admin' && authUser && authUser.role === 'admin'" class="no-print space-y-4">
+    <div class="bg-white rounded-md border border-slate-200 p-4">
+      <h3 class="font-semibold text-navy-800 mb-3">จัดการบัญชีผู้ใช้งาน</h3>
+      <form class="grid sm:grid-cols-4 gap-2 items-end" @submit.prevent="createAccount()">
+        <div><label class="lbl">ชื่อผู้ใช้ใหม่</label><input class="field" x-model.trim="newAccount.username" required autocomplete="off" placeholder="อย่างน้อย 3 ตัว"></div>
+        <div><label class="lbl">รหัสผ่าน</label><input type="password" class="field" x-model="newAccount.password" required minlength="8" autocomplete="new-password" placeholder="อย่างน้อย 8 ตัว"></div>
+        <div><label class="lbl">สิทธิ์</label><select class="field" x-model="newAccount.role"><option value="user">User</option><option value="admin">Admin</option></select></div>
+        <button class="btn bg-navy-700 text-white" type="submit" :disabled="userBusy">+ สร้างบัญชี</button>
+      </form>
+      <p class="text-sm mt-2" :class="userMsgOk ? 'text-green-700' : 'text-red-600'" x-text="userMsg"></p>
+      <div class="overflow-x-auto mt-3"><table class="tbl w-full text-sm border-collapse"><thead class="bg-slate-100"><tr><th>ชื่อผู้ใช้</th><th>สิทธิ์</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>
+        <template x-for="u in users" :key="u.username"><tr><td x-text="u.username"></td><td x-text="u.role"></td><td x-text="u.active ? 'ใช้งาน' : 'ปิดใช้งาน'"></td><td class="whitespace-nowrap"><button class="text-navy-700 underline mr-2" @click="toggleAccount(u)" x-text="u.active ? 'ปิดบัญชี' : 'เปิดบัญชี'"></button><button class="text-red-600 underline" @click="resetAccountPassword(u)">ตั้งรหัสผ่านใหม่</button></td></tr></template>
+      </tbody></table></div>
+    </div>
     <h2 class="text-xl font-bold text-navy-800">Admin: ข้อมูลหลัก</h2>
     <p class="text-sm font-semibold" :class="adminOk ? 'text-green-700' : 'text-red-600'" x-text="adminMsg"></p>
 
@@ -725,8 +751,8 @@ function dispatchApp() {
   const KEY = 'vschem-dispatch-v1', MKEY = 'vschem-master-v1', HKEY = 'vschem-history-v1';
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const SYNC_KEY = 'vschem-sync-v1';
-  const DEFAULT_SYNC_URL = 'https://script.google.com/macros/s/AKfycbwZlBmDxdzvSeczTriCBcwQwzAPN1qM-n-Fz2JTWOGY79K_gzt_gsEuhXygYAvjWE7J/exec';
-  const OLD_SYNC_URLS = ['https://script.google.com/macros/s/AKfycbwZlBmDxdzvSeczTriCBcwQwzAPN1qM-n-Fz2JTWOGY79K_gzt_gsEuhXygYAvjWE7J/exec'];   // ลิงก์เก่า: เครื่องที่ยังเก็บไว้จะถูกเปลี่ยนเป็นลิงก์ใหม่อัตโนมัติ
+  const DEFAULT_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyirJaklTqBUrij37z6TyPOqBBdDlM2TUGq7OsGXiTyjMOVBneq6xh3KOYOY25uoWEU/exec';
+  const OLD_SYNC_URLS = ['https://script.google.com/macros/s/AKfycbxM5Fxf1Ode40lk7ZnZlD2MrmcPa2ZmlSnLibc-UC_EV2XhU91WEvMUV5h5doNSMQ/exec', 'https://script.google.com/macros/s/AKfycbxUpPRqCqbWmbe8Un81t2jUwVNmW-zu3BZX8BULs1-X-6eegQUVTr0YlVug3mahAoI/exec'];   // ลิงก์เก่า: เครื่องที่ยังเก็บไว้จะถูกเปลี่ยนเป็นลิงก์ใหม่อัตโนมัติ
   const stable = v => JSON.stringify(v, (k, val) => (val && typeof val === 'object' && !Array.isArray(val))
     ? Object.keys(val).sort().reduce((o, key) => { o[key] = val[key]; return o; }, {}) : val);
   const hash = str => { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h) ^ str.charCodeAt(i); return (h >>> 0).toString(36) + '.' + str.length; };
@@ -780,6 +806,8 @@ function dispatchApp() {
     exp: { from: today().slice(0, 8) + '01', to: today(), unverified: false },
     dx: { from: today().slice(0, 8) + '01', to: today(), vehicle: '', status: '' }, dxMsg: '', dxErr: false,
     sc: { url: DEFAULT_SYNC_URL, token: '', enabled: true, since: 0, sigs: {}, cfgReady: false, forceCfg: false, pendingDeletes: [], lastOk: '' },
+    authSession: '', authUser: null, authMsg: '', authBusy: false, loginForm: { username: '', password: '' },
+    newAccount: { username: '', password: '', role: 'user' }, users: [], userBusy: false, userMsg: '', userMsgOk: true,
     syncBusy: false, syncAgain: false, syncErr: '', syncTimer: null,
     diag: [], diagBusy: false, syncLog: [], newVeh: { plate: '', note: '' }, adminMsg: '', adminOk: true,
     units: ['KG','TON','PAIL','BAG','DRUM','IBC','CARTON','PCS'],
@@ -804,10 +832,47 @@ function dispatchApp() {
       this.$watch('doc', () => { this.save(false); this.scheduleSync(); });
       this.$watch('master', v => { this.put(MKEY, v); this.scheduleSync(); });
       this.$watch('history', v => { this.put(HKEY, v); this.scheduleSync(); });
-      this.loadSync(); this.scheduleSync(300);
-      setInterval(() => { if (!document.hidden) this.syncNow(); }, 20000);
+      this.loadSync();
+      this.authSession = localStorage.getItem('vschem-auth-session') || '';
+      this.restoreAuth();
+      setInterval(() => { if (!document.hidden && this.authUser) this.syncNow(); }, 20000);
       document.addEventListener('visibilitychange', () => { if (!document.hidden) this.scheduleSync(300); });
       window.addEventListener('online', () => this.scheduleSync(300));
+    },
+    async restoreAuth() {
+      if (!this.authSession) return;
+      try { const r = await this.callSheet({ action: 'me' }); this.authUser = r.user; this.scheduleSync(300); if (this.authUser.role === 'admin') this.loadUsers(); }
+      catch (e) { this.authSession = ''; this.authUser = null; localStorage.removeItem('vschem-auth-session'); this.authMsg = 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง'; }
+    },
+    async login() {
+      if (this.authBusy) return; this.authBusy = true; this.authMsg = '';
+      try { const r = await this.callSheet({ action: 'login', username: this.loginForm.username, password: this.loginForm.password }); this.authSession = r.session; this.authUser = r.user; localStorage.setItem('vschem-auth-session', this.authSession); this.loginForm.password = ''; this.scheduleSync(300); if (this.authUser.role === 'admin') this.loadUsers(); }
+      catch (e) { this.authMsg = e.message || 'เข้าสู่ระบบไม่สำเร็จ'; } finally { this.authBusy = false; }
+    },
+    async logout() {
+      try { if (this.authSession) await this.callSheet({ action: 'logout' }); } catch (e) {}
+      this.authSession = ''; this.authUser = null; localStorage.removeItem('vschem-auth-session'); clearTimeout(this.syncTimer);
+    },
+    async loadUsers() {
+      if (!this.authUser || this.authUser.role !== 'admin') return;
+      try { const r = await this.callSheet({ action: 'listUsers' }); this.users = r.users || []; }
+      catch (e) { this.userMsgOk = false; this.userMsg = 'โหลดบัญชีไม่สำเร็จ: ' + e.message; }
+    },
+    async createAccount() {
+      this.userBusy = true; this.userMsg = '';
+      try { await this.callSheet({ action: 'createUser', username: this.newAccount.username, password: this.newAccount.password, role: this.newAccount.role }); this.newAccount = { username: '', password: '', role: 'user' }; this.userMsgOk = true; this.userMsg = 'สร้างบัญชีผู้ใช้แล้ว'; await this.loadUsers(); }
+      catch (e) { this.userMsgOk = false; this.userMsg = e.message; } finally { this.userBusy = false; }
+    },
+    async toggleAccount(u) {
+      if (!confirm((u.active ? 'ปิด' : 'เปิด') + 'บัญชี ' + u.username + '?')) return;
+      try { await this.callSheet({ action: 'setUserActive', username: u.username, active: !u.active }); await this.loadUsers(); }
+      catch (e) { this.userMsgOk = false; this.userMsg = e.message; }
+    },
+    async resetAccountPassword(u) {
+      const password = prompt('กำหนดรหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร) สำหรับ ' + u.username);
+      if (password === null) return;
+      try { await this.callSheet({ action: 'resetUserPassword', username: u.username, password }); this.userMsgOk = true; this.userMsg = 'ตั้งรหัสผ่านใหม่แล้ว'; }
+      catch (e) { this.userMsgOk = false; this.userMsg = e.message; }
     },
     save(manual) {
       this.savedErr = false;
@@ -1233,7 +1298,7 @@ function dispatchApp() {
     },
     persistSync() { this.put(SYNC_KEY, this.sc); },
     scheduleSync(ms) {
-      if (!this.sc.enabled || !this.sc.url) return;
+      if (!this.authUser || !this.authSession || !this.sc.enabled || !this.sc.url) return;
       clearTimeout(this.syncTimer);
       this.syncTimer = setTimeout(() => this.syncNow(), ms == null ? 2000 : ms);
     },
@@ -1271,7 +1336,7 @@ function dispatchApp() {
         let res;
         try {
           res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(Object.assign({ token: this.sc.token }, payload)), redirect: 'follow', signal: ctl.signal });
+            body: JSON.stringify(Object.assign({ token: this.sc.token, session: this.authSession }, payload)), redirect: 'follow', signal: ctl.signal });
         } catch (e) {
           throw new Error(e && e.name === 'AbortError' ? 'หมดเวลารอการตอบกลับ (30 วินาที)' : await this.explainNetworkFailure(url));
         }
@@ -1304,14 +1369,14 @@ function dispatchApp() {
           : (!readable ? 'เบราว์เซอร์อ่านคำตอบไม่ได้ (CORS) ตั้ง Deploy เป็น Execute as: Me และ Who has access: Anyone แล้ว Deploy เวอร์ชันใหม่'
             : 'HTTP ' + status + this.snip(text) + ' ยังไม่ได้วาง Code.gs หรือยังไม่ได้ Deploy เวอร์ชันใหม่'));
         if (!getOk) return;
-        try { await this.callSheet({ action: 'ping' }); add(true, '4. ส่งข้อมูลและตรวจรหัสลับ (POST)', 'สำเร็จ'); }
+        try { await this.callSheet({ action: 'me' }); add(true, '4. ส่งข้อมูลและตรวจรหัสลับ (POST)', 'สำเร็จ'); }
         catch (e) { add(false, '4. ส่งข้อมูลและตรวจรหัสลับ (POST)', e.message); return; }
         const ok = await this.syncNow();
         add(ok, '5. ซิงค์ข้อมูลจริง', ok ? 'สำเร็จ' : this.syncErr);
       } finally { this.diagBusy = false; }
     },
     async testSheet() {
-      try { await this.callSheet({ action: 'ping' }); this.msg(true, 'เชื่อมต่อ Google Sheet สำเร็จ'); }
+      try { await this.callSheet({ action: 'me' }); this.msg(true, 'เชื่อมต่อ Google Sheet สำเร็จ'); }
       catch (e) { this.msg(false, 'เชื่อมต่อไม่สำเร็จ: ' + e.message); }
     },
     collectChanges() {
@@ -1325,7 +1390,7 @@ function dispatchApp() {
     },
     async syncNow() {
       const S = this.sc;
-      if (!S.enabled || !S.url) return false;
+      if (!this.authUser || !this.authSession || !S.enabled || !S.url) return false;
       if (this.syncBusy) { this.syncAgain = true; return false; }
       this.syncBusy = true; this.syncErr = '';
       let ok = false, up = 0, down = 0;
