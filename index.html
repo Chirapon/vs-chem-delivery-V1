@@ -751,7 +751,7 @@ function dispatchApp() {
   const KEY = 'vschem-dispatch-v1', MKEY = 'vschem-master-v1', HKEY = 'vschem-history-v1';
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const SYNC_KEY = 'vschem-sync-v1';
-  const DEFAULT_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyirJaklTqBUrij37z6TyPOqBBdDlM2TUGq7OsGXiTyjMOVBneq6xh3KOYOY25uoWEU/exec';
+  const DEFAULT_SYNC_URL = 'https://script.google.com/macros/s/AKfycbz3742DITfrRt6e__plz_Pxc___VPq1nJ5iw_f_kliUlO5tFZX1b5_PL1If49WdEpNG/exec';
   const OLD_SYNC_URLS = ['https://script.google.com/macros/s/AKfycbxM5Fxf1Ode40lk7ZnZlD2MrmcPa2ZmlSnLibc-UC_EV2XhU91WEvMUV5h5doNSMQ/exec', 'https://script.google.com/macros/s/AKfycbxUpPRqCqbWmbe8Un81t2jUwVNmW-zu3BZX8BULs1-X-6eegQUVTr0YlVug3mahAoI/exec'];   // ลิงก์เก่า: เครื่องที่ยังเก็บไว้จะถูกเปลี่ยนเป็นลิงก์ใหม่อัตโนมัติ
   const stable = v => JSON.stringify(v, (k, val) => (val && typeof val === 'object' && !Array.isArray(val))
     ? Object.keys(val).sort().reduce((o, key) => { o[key] = val[key]; return o; }, {}) : val);
