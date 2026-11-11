@@ -549,7 +549,11 @@ tailwind.config = { theme: { extend: {
       <form class="grid sm:grid-cols-4 gap-2 items-end" @submit.prevent="createAccount()">
         <div><label class="lbl">ชื่อผู้ใช้ใหม่</label><input class="field" x-model.trim="newAccount.username" required autocomplete="off" placeholder="อย่างน้อย 3 ตัว"></div>
         <div><label class="lbl">รหัสผ่าน</label><input type="password" class="field" x-model="newAccount.password" required minlength="8" autocomplete="new-password" placeholder="อย่างน้อย 8 ตัว"></div>
-        <div><label class="lbl">สิทธิ์</label><select class="field" x-model="newAccount.role"><option value="user">User</option><option value="admin">Admin</option></select></div>
+        <div><label class="lbl">สิทธิ์</label><select class="field" x-model="newAccount.role">
+  <option value="user">พนักงานขับรถ</option>
+  <option value="rental">Rental (รถเช่า)</option>
+  <option value="admin">Admin</option>
+</select>
         <button class="btn bg-navy-700 text-white" type="submit" :disabled="userBusy">+ สร้างบัญชี</button>
       </form>
       <p class="text-sm mt-2" :class="userMsgOk ? 'text-green-700' : 'text-red-600'" x-text="userMsg"></p>
