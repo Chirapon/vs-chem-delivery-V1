@@ -72,7 +72,7 @@ tailwind.config = { theme: { extend: {
     <p class="text-sm" :class="savedErr ? 'text-red-600 font-semibold' : 'text-slate-600'" x-text="savedMsg"></p>
     <div class="flex flex-wrap gap-2">
       <button class="btn bg-navy-700 text-white hover:bg-navy-800" @click="saveDoc()">บันทึกใบงาน</button>
-      <button class="btn bg-white border border-navy-700 text-navy-700 hover:bg-navy-50" @click="printDoc()">พิมพ์ / บันทึกเป็น PDF</button>
+      <button class="btn bg-white border border-navy-700 text-navy-700 hover:bg-navy-50" @click="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
       <button class="btn bg-white border border-slate-300 text-slate-600 hover:bg-slate-50" @click="reset()">เริ่มใบงานใหม่</button>
     </div>
   </div>
